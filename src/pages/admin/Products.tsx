@@ -89,11 +89,11 @@ export default function Products() {
       category_id: product.category_id || "",
       available: product.available ?? true,
       featured: product.featured ?? false,
-      min_order_quantity: (product as any).min_order_quantity?.toString() || "1",
-      has_options: (product as any).has_options || false,
-      options: ((product as any).options as ProductOption[]) || [],
-      stock_enabled: (product as any).stock_enabled || false,
-      stock_quantity: (product as any).stock_quantity?.toString() || "",
+      min_order_quantity: product.min_order_quantity?.toString() || "1",
+      has_options: product.has_options || false,
+      options: (product.options as ProductOption[]) || [],
+      stock_enabled: product.stock_enabled || false,
+      stock_quantity: product.stock_quantity?.toString() || "",
     });
     setIsDialogOpen(true);
   };
@@ -416,7 +416,7 @@ export default function Products() {
                       Destaque
                     </Badge>
                   )}
-                  {(product as any).has_options && (
+                  {product.has_options && (
                     <Badge variant="outline" className="bg-background/80 text-xs">
                       <Settings2 className="w-3 h-3 mr-1" />
                       Opções
@@ -427,12 +427,12 @@ export default function Products() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!(product as any).stock_enabled) {
-                      updateProduct.mutate({ id: product.id, available: !product.available } as any);
+                    if (!product.stock_enabled) {
+                      updateProduct.mutate({ id: product.id, available: !product.available });
                     }
                   }}
                   className="absolute top-2 right-2"
-                  title={(product as any).stock_enabled ? "Controlado por estoque" : (product.available ? "Clique para desativar" : "Clique para ativar")}
+                  title={product.stock_enabled ? "Controlado por estoque" : (product.available ? "Clique para desativar" : "Clique para ativar")}
                 >
                   <Badge 
                     variant={product.available ? "default" : "secondary"} 
@@ -441,9 +441,9 @@ export default function Products() {
                     {product.available ? "Disponível" : "Indisponível"}
                   </Badge>
                 </button>
-                {(product as any).stock_enabled && (
+                {product.stock_enabled && (
                   <Badge variant="outline" className="absolute bottom-2 right-2 text-xs bg-background/80">
-                    Estoque: {(product as any).stock_quantity ?? 0}
+                    Estoque: {product.stock_quantity ?? 0}
                   </Badge>
                 )}
               </div>
@@ -462,9 +462,9 @@ export default function Products() {
                     )}
                   </div>
                 </div>
-                {(product as any).min_order_quantity > 1 && (
+                {product.min_order_quantity > 1 && (
                   <Badge variant="outline" className="w-fit text-xs mt-1">
-                    Mín: {(product as any).min_order_quantity} un.
+                    Mín: {product.min_order_quantity} un.
                   </Badge>
                 )}
               </CardHeader>

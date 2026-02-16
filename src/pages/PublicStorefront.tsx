@@ -18,6 +18,7 @@ import { StoreInfo, Category, Product, ProductOption } from "@/types/store";
 import { sanitizeProductOptions } from "@/lib/sanitizeProductOptions";
 import { applyThemeToDocument, parseThemeColorField } from "@/lib/storeTheme";
 import { isStoreOpenNow } from "@/lib/storeOpenStatus";
+import { useTrackVisitor } from "@/hooks/useStorePresence";
 
 interface ProductWithOptions extends Product {
   hasOptions?: boolean;
@@ -31,9 +32,12 @@ export default function PublicStorefront() {
   const { data: dbCategories, isLoading: categoriesLoading } = useCategories(store?.id);
   const { data: dbProducts, isLoading: productsLoading } = useProducts(store?.id);
 
+  // Track visitor presence for real-time count
+  useTrackVisitor(slug);
+
   useEffect(() => {
     if (!store) return;
-    return applyThemeToDocument({ themeColorField: (store as any).theme_color });
+    return applyThemeToDocument({ themeColorField: store.theme_color });
   }, [store]);
 
   // Add "Destaques" category at the beginning
@@ -43,16 +47,26 @@ export default function PublicStorefront() {
       id: c.id,
       name: c.name,
       icon: c.icon || "🍽️",
-      icon_url: (c as any).icon_url || undefined,
+      icon_url: c.icon_url || undefined,
     })) || []),
   ];
 
   const [activeCategory, setActiveCategory] = useState("featured");
+  const [scrollToCategory, setScrollToCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleCategoryClick = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    setScrollToCategory(categoryId);
+  };
+
+  // When a category is selected via nav, we keep it as "featured" view 
+  // but scroll to the section. The MobileProductGrid handles this internally.
 
   // Convert DB products to storefront format with options
   const products: ProductWithOptions[] = dbProducts?.map(p => {
-    const productOptions = sanitizeProductOptions((p as any).options as ProductOption[] | null);
-    const hasOptions = (p as any).has_options === true && productOptions.length > 0;
+    const productOptions = sanitizeProductOptions(p.options as ProductOption[] | null);
+    const hasOptions = p.has_options === true && productOptions.length > 0;
     
     return {
       id: p.id,
@@ -66,15 +80,15 @@ export default function PublicStorefront() {
       featured: p.featured ?? false,
       hasOptions,
       options: hasOptions ? productOptions : undefined,
-      minQuantity: (p as any).min_order_quantity || 1,
+      minQuantity: p.min_order_quantity || 1,
       // Stock info for display
-      stockEnabled: (p as any).stock_enabled ?? false,
-      stockQuantity: (p as any).stock_quantity ?? null,
+      stockEnabled: p.stock_enabled ?? false,
+      stockQuantity: p.stock_quantity ?? null,
     };
   }) || [];
 
   // Convert DB store to storefront format
-  const themeParsed = parseThemeColorField((store as any)?.theme_color);
+  const themeParsed = parseThemeColorField(store?.theme_color);
   const fulfillmentFromConfig = themeParsed.config
     ? {
         deliveryEnabled: themeParsed.config.deliveryEnabled ?? true,
@@ -89,10 +103,10 @@ export default function PublicStorefront() {
     logo: store.logo_url || "/placeholder.svg",
     coverImage: store.cover_image_url || "/placeholder.svg",
     address: store.address || "",
-    googleMapsUrl: (store as any).google_maps_url || undefined,
+    googleMapsUrl: store.google_maps_url || undefined,
     phone: store.phone || "",
     whatsapp: store.whatsapp || "",
-    whatsappMessage: (store as any).whatsapp_message || undefined,
+    whatsappMessage: store.whatsapp_message || undefined,
     instagram: store.instagram || undefined,
     openingHours: (store.opening_hours as any[]) || [],
     deliveryFee: Number(store.delivery_fee) || 0,
@@ -100,12 +114,12 @@ export default function PublicStorefront() {
     estimatedTime: store.estimated_time || "30-45 min",
     acceptedPayments: store.accepted_payments || [],
     isOpen: isStoreOpenNow((store.opening_hours as any[])?.map(h => ({ day: h.day, hours: h.hours, isOpen: h.isOpen ?? h.is_open ?? true })) || []),
-    rating: (store as any).rating || 4.8,
-    reviewCount: (store as any).review_count || 0,
-    checkoutLink: (store as any).checkout_link || undefined,
-    customPayments: (store as any).custom_payments || [],
-    helpButtonEnabled: (store as any).help_button_enabled ?? true,
-    helpButtonMessage: (store as any).help_button_message || "Olá! Tenho uma dúvida.",
+    rating: store.rating || 4.8,
+    reviewCount: store.review_count || 0,
+    checkoutLink: store.checkout_link || undefined,
+    customPayments: store.custom_payments || [],
+    helpButtonEnabled: store.help_button_enabled ?? true,
+    helpButtonMessage: store.help_button_message || "Olá! Tenho uma dúvida.",
     deliveryEnabled: fulfillmentFromConfig.deliveryEnabled,
     pickupEnabled: fulfillmentFromConfig.pickupEnabled,
   } : null;
@@ -141,7 +155,7 @@ export default function PublicStorefront() {
 
   return (
     <CustomerAuthProvider storeId={store.id}>
-      <CartProvider>
+      <CartProvider storeSlug={slug!}>
         <div className="min-h-screen bg-background">
           {storeInfo && (
             <>
@@ -149,7 +163,9 @@ export default function PublicStorefront() {
               <CategoryNav
                 categories={categories}
                 activeCategory={activeCategory}
-                onCategoryChange={setActiveCategory}
+                onCategoryChange={handleCategoryClick}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
               />
               <MobileProductGrid
                 products={products}
@@ -158,6 +174,9 @@ export default function PublicStorefront() {
                 store={storeInfo}
                 unavailableWhatsappEnabled={true}
                 onCategoryChange={setActiveCategory}
+                scrollToCategory={scrollToCategory}
+                onScrollComplete={() => setScrollToCategory(null)}
+                searchQuery={searchQuery}
               />
               <StoreFooter store={storeInfo} />
               <FooterDeveloperBadge />

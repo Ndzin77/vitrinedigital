@@ -85,6 +85,9 @@ export function MobileProductCard({
   const stockQuantity = (product as any).stockQuantity ?? null;
   const isLowStock = stockEnabled && typeof stockQuantity === "number" && stockQuantity <= 5 && stockQuantity > 0;
 
+  // Social proof - simulate "popular" indicator for featured items
+  const isPopular = product.featured;
+
   return (
     <>
       <div
@@ -92,7 +95,7 @@ export function MobileProductCard({
         onMouseLeave={() => setIsHovered(false)}
         className={`group relative bg-card rounded-2xl overflow-hidden shadow-soft transition-all duration-500 touch-manipulation hover:-translate-y-1 hover:shadow-strong ${
           !product.available ? "opacity-80" : ""
-        } ${quantity > 0 ? "ring-2 ring-primary/30" : ""}`}
+        } ${quantity > 0 ? "ring-2 ring-primary/30 shadow-glow" : ""}`}
       >
         {/* Image Container - Clickable for detail */}
         <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => setShowDetail(true)}>
@@ -176,22 +179,34 @@ export function MobileProductCard({
 
         {/* Content */}
         <div className="p-3 sm:p-4">
-          <h3 className="font-bold text-foreground text-sm mb-1 line-clamp-1 group-hover:text-primary transition-colors font-display">
-            {product.name}
-          </h3>
+          <div className="flex items-start justify-between gap-1">
+            <h3 className="font-bold text-foreground text-sm mb-1 line-clamp-1 group-hover:text-primary transition-colors font-display flex-1">
+              {product.name}
+            </h3>
+            {isPopular && (
+              <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full shrink-0">
+                Popular
+              </span>
+            )}
+          </div>
           <p className="text-muted-foreground text-xs line-clamp-2 mb-3 min-h-[32px] text-pretty">
             {product.description}
           </p>
 
           <div className="flex items-center justify-between gap-2">
-            {/* Price */}
+            {/* Price — anchoring effect: show original price first */}
             <div className="flex flex-col min-w-0">
+              {hasDiscount && (
+                <span className="text-xs text-muted-foreground line-through">
+                  R$ {product.originalPrice!.toFixed(2).replace(".", ",")}
+                </span>
+              )}
               <span className="text-base sm:text-lg font-bold text-foreground tracking-tight">
                 R$ {product.price.toFixed(2).replace(".", ",")}
               </span>
               {hasDiscount && (
-                <span className="text-xs text-muted-foreground line-through">
-                  R$ {product.originalPrice!.toFixed(2).replace(".", ",")}
+                <span className="text-[10px] font-bold text-accent">
+                  Economia de R$ {(product.originalPrice! - product.price).toFixed(2).replace(".", ",")}
                 </span>
               )}
             </div>

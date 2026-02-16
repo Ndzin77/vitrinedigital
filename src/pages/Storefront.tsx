@@ -12,7 +12,7 @@ export default function Storefront() {
   const [activeCategory, setActiveCategory] = useState(categories[0].id);
 
   return (
-    <CartProvider>
+    <CartProvider storeSlug="demo">
       <div className="min-h-screen bg-background">
         <StoreHeader store={storeInfo} />
         <CategoryNav

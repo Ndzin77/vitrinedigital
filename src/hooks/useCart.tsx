@@ -23,12 +23,16 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = "vitrine-cart";
+const CART_STORAGE_PREFIX = "vitrine-cart-";
+
+function getCartKey(storeSlug: string) {
+  return `${CART_STORAGE_PREFIX}${storeSlug}`;
+}
 
 // Helper to load cart from localStorage
-function loadCartFromStorage(): CartItem[] {
+function loadCartFromStorage(storeSlug: string): CartItem[] {
   try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
+    const stored = localStorage.getItem(getCartKey(storeSlug));
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed)) {
@@ -42,21 +46,26 @@ function loadCartFromStorage(): CartItem[] {
 }
 
 // Helper to save cart to localStorage
-function saveCartToStorage(items: CartItem[]) {
+function saveCartToStorage(items: CartItem[], storeSlug: string) {
   try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    localStorage.setItem(getCartKey(storeSlug), JSON.stringify(items));
   } catch (e) {
     console.warn("Failed to save cart to localStorage:", e);
   }
 }
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => loadCartFromStorage());
+interface CartProviderProps {
+  children: ReactNode;
+  storeSlug: string;
+}
+
+export function CartProvider({ children, storeSlug }: CartProviderProps) {
+  const [items, setItems] = useState<CartItem[]>(() => loadCartFromStorage(storeSlug));
   const [isOpen, setIsOpen] = useState(false);
 
   // Persist cart to localStorage whenever items change
   useEffect(() => {
-    saveCartToStorage(items);
+    saveCartToStorage(items, storeSlug);
   }, [items]);
 
   // Helper to check stock limit

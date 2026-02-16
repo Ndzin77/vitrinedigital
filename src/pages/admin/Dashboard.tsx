@@ -1,7 +1,9 @@
 import { useMyStore, useProducts, useCategories } from "@/hooks/useStore";
+import { useOrders } from "@/hooks/useOrders";
+import { useVisitorCount } from "@/hooks/useStorePresence";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Package, Tag, Eye, TrendingUp, Copy, ExternalLink, Sparkles, ArrowUpRight, BarChart3 } from "lucide-react";
+import { Package, Tag, Eye, TrendingUp, Copy, ExternalLink, Sparkles, BarChart3, ShoppingCart, DollarSign, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -9,6 +11,8 @@ export default function Dashboard() {
   const { data: store, isLoading: storeLoading } = useMyStore();
   const { data: products, isLoading: productsLoading } = useProducts(store?.id);
   const { data: categories, isLoading: categoriesLoading } = useCategories(store?.id);
+  const { data: orders, isLoading: ordersLoading } = useOrders(store?.id);
+  const visitorCount = useVisitorCount(store?.slug);
 
   const storeUrl = store?.slug ? `${window.location.origin}/loja/${store.slug}` : "";
 
@@ -16,6 +20,11 @@ export default function Dashboard() {
     navigator.clipboard.writeText(storeUrl);
     toast.success("Link copiado para a área de transferência!");
   };
+
+  // Real metrics from orders
+  const totalOrders = orders?.length ?? 0;
+  const pendingOrders = orders?.filter(o => o.status === "pending").length ?? 0;
+  const totalRevenue = orders?.filter(o => o.status !== "cancelled").reduce((sum, o) => sum + o.total, 0) ?? 0;
 
   const stats = [
     {
@@ -25,16 +34,15 @@ export default function Dashboard() {
       gradient: "from-primary/20 to-orange-500/20",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
-      trend: "+12%",
     },
     {
-      title: "Categorias",
-      value: categories?.length ?? 0,
-      icon: Tag,
-      gradient: "from-accent/20 to-emerald-500/20",
-      iconBg: "bg-accent/10",
-      iconColor: "text-accent",
-      trend: null,
+      title: "Pedidos",
+      value: totalOrders,
+      subtitle: pendingOrders > 0 ? `${pendingOrders} pendente(s)` : undefined,
+      icon: ShoppingCart,
+      gradient: "from-blue-500/20 to-cyan-500/20",
+      iconBg: "bg-blue-500/10",
+      iconColor: "text-blue-600",
     },
     {
       title: "Ativos",
@@ -43,16 +51,23 @@ export default function Dashboard() {
       gradient: "from-green-500/20 to-emerald-500/20",
       iconBg: "bg-green-500/10",
       iconColor: "text-green-600",
-      trend: "+5%",
     },
     {
-      title: "Destaque",
-      value: products?.filter(p => p.featured).length ?? 0,
-      icon: Sparkles,
+      title: "Faturamento",
+      value: `R$ ${totalRevenue.toFixed(2).replace('.', ',')}`,
+      icon: DollarSign,
       gradient: "from-yellow-500/20 to-amber-500/20",
       iconBg: "bg-yellow-500/10",
       iconColor: "text-yellow-600",
-      trend: null,
+    },
+    {
+      title: "Visitantes agora",
+      value: visitorCount,
+      subtitle: visitorCount > 0 ? "online" : "nenhum visitante",
+      icon: Users,
+      gradient: "from-purple-500/20 to-pink-500/20",
+      iconBg: "bg-purple-500/10",
+      iconColor: "text-purple-600",
     },
   ];
 
@@ -127,7 +142,7 @@ export default function Dashboard() {
       </Card>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         {stats.map((stat, idx) => (
           <Card 
             key={stat.title} 
@@ -145,17 +160,16 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent className="relative p-4 pt-0">
-              {productsLoading || categoriesLoading ? (
+              {productsLoading || categoriesLoading || ordersLoading ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="flex items-end gap-2">
+                <div>
                   <div className="text-3xl sm:text-4xl font-bold text-foreground font-display">
                     {stat.value}
                   </div>
-                  {stat.trend && (
-                    <span className="text-xs font-semibold text-accent flex items-center mb-1">
-                      <ArrowUpRight className="w-3 h-3" />
-                      {stat.trend}
+                  {"subtitle" in stat && stat.subtitle && (
+                    <span className="text-xs font-medium text-muted-foreground mt-1">
+                      {stat.subtitle}
                     </span>
                   )}
                 </div>

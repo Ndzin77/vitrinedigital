@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { FooterDeveloperBadge, FloatingDeveloperBadge } from "@/components/DeveloperWatermark";
 import { useMyStore } from "@/hooks/useStore";
 import { applyThemeToDocument } from "@/lib/storeTheme";
+import { useOrderNotifications } from "@/hooks/useOrderNotifications";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import {
   Sidebar,
   SidebarContent,
@@ -34,15 +36,20 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const menuItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Pedidos", url: "/admin/orders", icon: ClipboardList },
-  { title: "Produtos", url: "/admin/products", icon: Package },
-  { title: "Categorias", url: "/admin/categories", icon: Tag },
-  { title: "Clientes", url: "/admin/customers", icon: Users },
-  { title: "Configurações", url: "/admin/settings", icon: Settings },
+  { title: "Dashboard", url: "/admin", icon: LayoutDashboard, badge: null as string | null },
+  { title: "Pedidos", url: "/admin/orders", icon: ClipboardList, badge: null as string | null },
+  { title: "Produtos", url: "/admin/products", icon: Package, badge: null as string | null },
+  { title: "Categorias", url: "/admin/categories", icon: Tag, badge: null as string | null },
+  { title: "Clientes", url: "/admin/customers", icon: Users, badge: null as string | null },
+  { title: "Configurações", url: "/admin/settings", icon: Settings, badge: null as string | null },
 ];
 
-function AdminSidebar() {
+interface AdminSidebarProps {
+  newOrderCount: number;
+  onClearOrders: () => void;
+}
+
+function AdminSidebar({ newOrderCount, onClearOrders }: AdminSidebarProps) {
   const { signOut } = useAuth();
   const { data: store, isLoading } = useMyStore();
   const navigate = useNavigate();
@@ -61,8 +68,11 @@ function AdminSidebar() {
     }
   };
 
-  const handleNavClick = () => {
-    // Close mobile sidebar on navigation
+  const handleNavClick = (url: string) => {
+    // Clear order count when navigating to orders
+    if (url === "/admin/orders") {
+      onClearOrders();
+    }
     setOpenMobile(false);
   };
 
@@ -92,22 +102,42 @@ function AdminSidebar() {
           <SidebarGroupLabel className="text-xs">Menu</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/admin"}
-                      className="flex items-center gap-3 hover:bg-muted/50 rounded-lg px-3 py-2.5 text-sm"
-                      activeClassName="bg-primary/10 text-primary font-medium"
-                      onClick={handleNavClick}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const isOrders = item.url === "/admin/orders";
+                const showBadge = isOrders && newOrderCount > 0;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === "/admin"}
+                        className="flex items-center gap-3 hover:bg-muted/50 rounded-lg px-3 py-2.5 text-sm relative"
+                        activeClassName="bg-primary/10 text-primary font-medium"
+                        onClick={() => handleNavClick(item.url)}
+                      >
+                        <div className="relative">
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {showBadge && collapsed && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 animate-pulse">
+                              {newOrderCount > 9 ? "9+" : newOrderCount}
+                            </span>
+                          )}
+                        </div>
+                        {!collapsed && (
+                          <>
+                            <span>{item.title}</span>
+                            {showBadge && (
+                              <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                                {newOrderCount > 9 ? "9+" : newOrderCount}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -146,7 +176,14 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
+  const { user } = useAuth();
   const { data: store } = useMyStore();
+
+  // Real-time order notifications with sound
+  const { newOrderCount, clearNewOrderCount } = useOrderNotifications({ storeId: store?.id });
+
+  // Web Push notifications (works even with browser closed)
+  usePushNotifications({ storeId: store?.id, userId: user?.id });
 
   useEffect(() => {
     if (!store) return;
@@ -156,7 +193,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar />
+        <AdminSidebar newOrderCount={newOrderCount} onClearOrders={clearNewOrderCount} />
         <main className="flex-1 flex flex-col min-w-0">
           <header className="h-12 sm:h-14 border-b flex items-center px-3 sm:px-4 gap-3 bg-card sticky top-0 z-10">
             <SidebarTrigger>

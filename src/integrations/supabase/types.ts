@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           icon: string | null
+          icon_url: string | null
           id: string
           is_active: boolean | null
           name: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           created_at?: string
           icon?: string | null
+          icon_url?: string | null
           id?: string
           is_active?: boolean | null
           name: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           created_at?: string
           icon?: string | null
+          icon_url?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
@@ -45,6 +48,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          id: string
+          last_login_at: string | null
+          name: string
+          password_hash: string | null
+          phone: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_login_at?: string | null
+          name: string
+          password_hash?: string | null
+          phone: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_login_at?: string | null
+          name?: string
+          password_hash?: string | null
+          phone?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -314,6 +358,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_store_customers_safe: {
+        Args: { _store_id: string }
+        Returns: {
+          created_at: string
+          has_password: boolean
+          id: string
+          last_login_at: string
+          name: string
+          phone: string
+          store_id: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

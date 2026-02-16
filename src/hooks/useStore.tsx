@@ -33,6 +33,11 @@ export interface DbStore {
   theme_color: string;
   rating: number;
   review_count: number;
+  checkout_link: string | null;
+  custom_payments: { id: string; name: string; description?: string }[];
+  help_button_enabled: boolean;
+  help_button_message: string | null;
+  payment_icons: Record<string, any> | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,6 +47,7 @@ export interface DbCategory {
   store_id: string;
   name: string;
   icon: string;
+  icon_url: string | null;
   sort_order: number;
   is_active: boolean;
   created_at: string;
@@ -59,6 +65,11 @@ export interface DbProduct {
   available: boolean;
   featured: boolean;
   sort_order: number;
+  has_options: boolean;
+  options: any;
+  min_order_quantity: number;
+  stock_enabled: boolean;
+  stock_quantity: number | null;
   created_at: string;
   updated_at: string;
 }

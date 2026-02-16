@@ -159,7 +159,7 @@ export default function Index() {
             <span className="font-semibold text-foreground">Vitrine SaaS</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2025 Vitrine SaaS. Todos os direitos reservados.
+            © 2026 Vitrine SaaS. Todos os direitos reservados.
           </p>
         </div>
       </footer>
